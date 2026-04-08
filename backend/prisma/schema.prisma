@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String         @id @default(uuid())
+  name      String
+  email     String         @unique
+  password  String
+  records   BorrowRecord[]
+  reservations Reservation[]
+  createdAt DateTime       @default(now())
+  deletedAt DateTime?
+}
+
+model Book {
+  id              String           @id @default(uuid())
+  title           String
+  author          String
+  coverImage      String?
+  copies          PhysicalCopy[]
+  reservations    Reservation[]
+  
+  createdAt       DateTime         @default(now())
+  deletedAt       DateTime?
+}
+
+enum CopyStatus {
+  AVAILABLE
+  RESERVED
+  BORROWED
+  MAINTENANCE
+  LOST
+}
+
+model PhysicalCopy {
+  id        String         @id @default(uuid())
+  bookId    String
+  book      Book           @relation(fields: [bookId], references: [id])
+  status    CopyStatus     @default(AVAILABLE)
+  records   BorrowRecord[]
+  
+  createdAt DateTime       @default(now())
+  deletedAt DateTime?
+}
+
+model BorrowRecord {
+  id             String       @id @default(uuid())
+  physicalCopyId String
+  physicalCopy   PhysicalCopy @relation(fields: [physicalCopyId], references: [id])
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  
+  borrowDate     DateTime     @default(now())
+  dueDate        DateTime
+  returnDate     DateTime?
+  
+  status         String       @default("BORROWED")
+  fineAmount     Int          @default(0)
+
+  createdAt      DateTime     @default(now())
+  deletedAt      DateTime?
+}
+
+model Reservation {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id])
+  
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+}
+
+model IdempotencyKey {
+  key        String   @id
+  userId     String
+  path       String
+  response   Json
+  createdAt  DateTime @default(now())
+}
